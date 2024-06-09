@@ -22,7 +22,7 @@ The application allows users to upload JSON files containing trade data and visu
 1. Clone the repository
 
 ```sh
-git clone https://github.com/your-username/trade-data-visualization.git
+git clone https://github.com/gabriel-a/trade-data-visualization.git
 cd trade-data-visualization
 ```
 
