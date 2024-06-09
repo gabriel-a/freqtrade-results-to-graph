@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Visualization</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+</head>
+<body class="bg-gray-100 h-screen">
+<div class="container mx-auto p-4 h-full flex flex-col">
+    <div class="flex justify-between mb-4">
+        <h1 class="text-2xl font-bold text-gray-900">Trade Data Visualization</h1>
+    </div>
+    <div class="flex flex-1 overflow-hidden w-full">
+        <div class="w-1/4 p-4 bg-white shadow-md rounded-lg overflow-y-auto text-sm text-gray-900">
+            <h2 class="text-xl font-semibold mb-2">Available JSON Files</h2>
+            <ul id="file-list" class="space-y-2">
+                <!-- Files will be listed here -->
+            </ul>
+        </div>
+        <div class="w-3/4 p-4 flex flex-col">
+            <div class="mb-4 flex space-x-2">
+                <button onclick="zoomChart(1.1)" class="bg-blue-500 text-white px-4 py-2 rounded">Zoom In</button>
+                <button onclick="zoomChart(0.9)" class="bg-blue-500 text-white px-4 py-2 rounded">Zoom Out</button>
+                <button onclick="resetZoom()" class="bg-blue-500 text-white px-4 py-2 rounded">Reset Zoom</button>
+            </div>
+            <div class="mb-4 flex space-x-2">
+                <label for="start-date" class="self-center text-gray-900">Start Date:</label>
+                <input type="date" id="start-date" name="start-date" class="border rounded px-2 py-1">
+                <label for="end-date" class="self-center text-gray-900">End Date:</label>
+                <input type="date" id="end-date" name="end-date" class="border rounded px-2 py-1">
+                <button id="apply-date-zoom" onclick="applyDateZoom()" class="bg-green-500 text-white px-4 py-2 rounded" disabled>Apply Date Zoom</button>
+            </div>
+            <div class="flex-1">
+                <canvas id="tradeChart" class="bg-white p-4 rounded shadow-md w-full h-full"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let chart;
+    let chartType = 'scatter-line';
+    let currentFile = '';
+
+    async function fetchData(file) {
+        const response = await fetch(`/data/${file}`);
+        const data = await response.json();
+        return data.strategy.jkstrategy2.trades;
+    }
+
+    async function listFiles() {
+        const response = await fetch('/list-files');
+        const files = await response.json();
+        const fileList = document.getElementById('file-list');
+        fileList.innerHTML = '';
+        files.forEach(file => {
+            const li = document.createElement('li');
+            li.innerHTML = `<button onclick="loadFile('${file}')" class="text-blue-500 underline">${file}</button>`;
+            fileList.appendChild(li);
+        });
+    }
+
+    function setDatePickerLimits(data) {
+        const dates = data.map(trade => new Date(trade.open_timestamp));
+        const minDate = new Date(Math.min(...dates)).toISOString().split('T')[0];
+        const maxDate = new Date(Math.max(...dates)).toISOString().split('T')[0];
+
+        document.getElementById('start-date').min = minDate;
+        document.getElementById('start-date').max = maxDate;
+        document.getElementById('end-date').min = minDate;
+        document.getElementById('end-date').max = maxDate;
+
+        document.getElementById('start-date').value = minDate;
+        document.getElementById('end-date').value = maxDate;
+
+        document.getElementById('apply-date-zoom').disabled = false;
+    }
+
+    function createChart(data, type = 'scatter-line') {
+        const ctx = document.getElementById('tradeChart').getContext('2d');
+        const scatterData = data.map(trade => ({ x: new Date(trade.open_timestamp), y: trade.profit_abs }));
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Profit over time',
+                    data: scatterData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 1,
+                    fill: false,
+                    showLine: true // ensures that the line is drawn for scatter chart
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            stepSize: 1,
+                            displayFormats: {
+                                day: 'MMM dd'
+                            },
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Profit'
+                        }
+                    }
+                },
+                plugins: {
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'x',
+                            speed: 10,
+                            threshold: 10
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true,
+                                speed: 0.1
+                            },
+                            drag: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'x',
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutBounce'
+                }
+            }
+        });
+    }
+
+    function zoomChart(factor) {
+        chart.zoom(factor);
+    }
+
+    function resetZoom() {
+        chart.resetZoom();
+    }
+
+    function applyDateZoom() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        if (startDate && endDate) {
+            const minDate = new Date(startDate).getTime();
+            const maxDate = new Date(endDate).getTime();
+
+            chart.zoomScale('x', {
+                min: minDate,
+                max: maxDate
+            });
+        }
+    }
+
+    function loadFile(file) {
+        currentFile = file;
+        fetchData(file).then(data => {
+            createChart(data, chartType);
+            setDatePickerLimits(data);
+        });
+    }
+
+    listFiles();
+</script>
+</body>
+</html>
