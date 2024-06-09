@@ -4,8 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "build:css": "npx postcss src/input.css -o public/output.css",
-    "start": "npm-run-all build:css --parallel dev open",
+    "start": "npm-run-all --parallel dev open",
     "dev": "nodemon server.js",
     "open": "open-cli http://localhost:3000",
     "test": "jest",
