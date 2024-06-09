@@ -22,9 +22,12 @@ The application allows users to upload JSON files containing trade data and visu
 1. Clone the repository
 
 ```sh
-git clone https://github.com/gabriel-a/trade-data-visualization.git
+git clone https://github.com/gabriel-a/freqtrade-results-to-graph.git
 cd trade-data-visualization
 ```
+
+Or simply download the zip folder
+https://github.com/gabriel-a/freqtrade-results-to-graph/archive/refs/heads/main.zip
 
 
 2. Install the dependencies
