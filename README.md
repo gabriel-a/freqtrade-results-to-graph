@@ -23,7 +23,7 @@ The application allows users to upload JSON files containing trade data and visu
 
 ```sh
 git clone https://github.com/gabriel-a/freqtrade-results-to-graph.git
-cd trade-data-visualization
+cd freqtrade-results-to-graph
 ```
 
 Or simply download the zip folder
